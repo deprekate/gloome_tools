@@ -18,6 +18,13 @@ def is_valid_file(x):
 		raise argparse.ArgumentTypeError("{0} does not exist".format(x))
 	return x
 
+def just_seq(text):
+	seq = ''
+	for line in text.split("\n"):
+		if line and not line.startswith(">"):
+			seq += line
+	return seq
+	
 
 if __name__ == '__main__':
 	usage = '%s [-opt1, [-opt2, ...]] infile' % __file__
@@ -49,11 +56,10 @@ if __name__ == '__main__':
 		for line in f:
 			if line.startswith('<td valign = bottom'):
 				line = line.replace('title=', 'oncontextmenu="navigator.clipboard.writeText(\'' + orthologs['og_'+str(i)].replace("\n", "\\n") + '\');return false;" title=')
-				line = line.replace('title="', 'title="' + orthologs['og_'+str(i)] + '\nright click to copy sequence ')
+				line = line.replace('title="', 'title="' + just_seq(orthologs['og_'+str(i)]) + ' right click to copy sequence ')
 				i += 1
 			text.append(line)
 
 	with open(os.path.join(args.GLOOME_DIR, 'MSA_color_coded_by_gain_probability.html'), "w+") as f:
 		for line in text:
 			f.write(line)
-			f.write('\n')
