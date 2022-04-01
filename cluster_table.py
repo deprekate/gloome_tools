@@ -102,10 +102,20 @@ if __name__ == '__main__':
 					A = None
 					flag = False
 				elif line.startswith('</table>'):
+					f.write(line)
 					flag = True
 				elif flag:
 					f.write(line)
-
+				# This adds the css to keep the first column locked in place
+				if line.startswith('</head>'):
+					f.write('<style>\n')
+					f.write('.Seq_Name {\n')
+					f.write('  position: sticky;\n')
+					f.write('  left: 0;\n')
+					f.write('  background-color: #ffffff;\n')
+					f.write('}\n')
+					f.write('</style>\n')
+					f.write(line)
 
 
 
