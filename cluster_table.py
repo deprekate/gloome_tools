@@ -24,6 +24,21 @@ from genbank.file import File
 
 def css():
 	return """
+.rotate {
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  width: 1.5em;
+}
+.rotate div {
+     -moz-transform: rotate(-90.0deg);  /* FF3.5+ */
+       -o-transform: rotate(-90.0deg);  /* Opera 10.5 */
+  -webkit-transform: rotate(-90.0deg);  /* Saf3.1+, Chrome */
+             filter:  progid:DXImageTransform.Microsoft.BasicImage(rotation=0.083);  /* IE6,IE7 */
+         -ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=0.083)"; /* IE8 */
+         margin-left: -10em;
+         margin-right: -10em;
+}
 table { 
 	/*	table-layout: auto; */
 		table-layout: fixed;
@@ -39,11 +54,13 @@ td {
         font-weight: bold;
         text-align: center;
         overflow:hidden;
-     /*   white-space:nowrap; */
+     /* white-space:nowrap; */
 		 white-space:pre;
-/*	 	padding:0.1em 0.1em 0.1em 0.1em; */
-/*	 	margin:0.5em 0.5em 0.5em 0.5em;*/
+     /*	padding:0.1em 0.1em 0.1em 0.1em; */
+     /*	margin:0.5em 0.5em 0.5em 0.5em;*/
 		width: 1em;
+        border-collapse: collapse;
+		border: 1px black solid;
       }
 td.Seq_Name{
         text-align: left;
@@ -102,6 +119,7 @@ if __name__ == '__main__':
 		width = None
 		with open(os.path.join(args.GLOOME_DIR, 'MSA_color_coded_by_'+kind+'_probability.html'), "r+") as f:
 			for line in f:
+				line = line.replace('http://gloome.tau.ac.il','')
 				if line.startswith('</table>'):
 					flag = True
 				elif flag:
@@ -154,20 +172,30 @@ if __name__ == '__main__':
 					A = None
 					flag = False
 					# add stuff below the bars
-					'''
 					f.write("<tr>\n")
 					for cell in row:
 						match = re.findall("title=\"[^\"]*", cell)
 						if match:
-							f.write("<td class='rotate'>\n")
+							f.write("<td class='rotate'><div>\n")
 							f.write(match[0].split("\"")[-1].split(":")[0])
+							f.write("</div></td>\n")
 						else:
 							f.write("<td class='Seq_Name' style = 'text-align: right'>\n")
-							f.write("og#")
-						f.write("\n")
-						f.write("</td>\n")
+							f.write("og")
+							f.write("</td>\n")
 					f.write("</tr>\n")
-					'''
+					f.write("<tr>\n")
+					for cell in row:
+						match = re.findall("title=\"[^\"]*", cell)
+						if match:
+							f.write("<td class='rotate'><div>\n")
+							f.write(match[0].split("\"")[-1].split(":")[1])
+							f.write("</div></td>\n")
+						else:
+							f.write("<td class='Seq_Name' style = 'text-align: right'>\n")
+							f.write("Expectation<br><br>")
+							f.write("</td>\n")
+					f.write("</tr>\n")
 				elif line.startswith('</table>'):
 					f.write(line)
 					flag = True
