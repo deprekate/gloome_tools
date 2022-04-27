@@ -16,6 +16,8 @@ sys.setrecursionlimit(10000)
 import numpy as np
 import scipy
 import scipy.cluster.hierarchy as sch
+from sklearn.ensemble import RandomForestClassifier
+from sklearn import preprocessing
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import squareform
 
@@ -99,8 +101,11 @@ def is_valid_file(x):
 	return x
 
 def strip_html(text):
+	return re.sub('<[^<]+?>', '', text)
+
+def html_to_int(text):
 	try:
-		return int(re.sub('<[^<]+?>', '', text))
+		return int(strip_html(text))
 	except:
 		return 0
 
@@ -108,6 +113,7 @@ if __name__ == '__main__':
 	usage = '%s [-opt1, [-opt2, ...]] infile' % __file__
 	parser = argparse.ArgumentParser(description='', formatter_class=RawTextHelpFormatter, usage=usage)
 	parser.add_argument('GLOOME_DIR', type=is_valid_file, help='input file')
+	parser.add_argument('-l', '--labels', action="store", type=is_valid_file, help='file that has the tab delimted labels for the genomes')
 	args = parser.parse_args()
 
 	# THI IS TO ANNOTATE THE GLOOME GAIN/LOSS HTML PAGES
@@ -137,9 +143,9 @@ if __name__ == '__main__':
 		if len(table[-1]) != width:
 			table[-1] = [''] * width
 		table = np.array(table)
-	
-		table_vec = np.vectorize(strip_html)
+		table_vec = np.vectorize(html_to_int)
 		table_num = table_vec(table)
+		
 		taxa = table_num.shape[0] - 5
 		d2 = sch.distance.pdist(table_num[:taxa,1:].transpose())
 		D2 = squareform(d2)
@@ -157,6 +163,24 @@ if __name__ == '__main__':
 		A = table[idx1+list(range(taxa,taxa+5)),:]
 		A = A[:,[0]+idx2]	
 
+		importances = None
+		if args.labels:
+			label_dict = dict()
+			y = []
+			with open(args.labels) as f:
+				for line in f:
+					(key, value) = line.rstrip().split()
+					label_dict[key] = value
+			for row in table[:taxa,0]:
+				y.append(label_dict[strip_html(row)])
+			le = preprocessing.LabelEncoder()
+			y = le.fit_transform(y)
+			clf = RandomForestClassifier(n_estimators=table.shape[1], random_state=0)
+			clf.fit(table_num[:taxa,:], y)
+			importances = clf.feature_importances_
+			importances = importances[idx2]
+
+		#exit()
 		flag = True
 		with open(os.path.join(args.GLOOME_DIR, 'MSA_color_coded_by_'+kind+'_probability.html'), "w+") as f:
 			for line in text:
@@ -195,6 +219,16 @@ if __name__ == '__main__':
 							f.write("<td class='Seq_Name' style = 'text-align: right'>\n")
 							f.write("Expectation<br><br>")
 							f.write("</td>\n")
+					f.write("</tr>\n")
+					# add in randomforest stuff
+					f.write("<tr>\n")
+					f.write("<td class='Seq_Name' style = 'text-align: right'>\n")
+					f.write("Importances<br><br>")
+					f.write("</td>\n")
+					for imp in importances:
+						f.write("<td class='rotate'><div>\n")
+						f.write(str(round(imp,4)))
+						f.write("</div></td>\n")
 					f.write("</tr>\n")
 				elif line.startswith('</table>'):
 					f.write(line)
