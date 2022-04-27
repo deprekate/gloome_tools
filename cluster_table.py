@@ -31,6 +31,7 @@ def css():
   white-space: nowrap;
   vertical-align: middle;
   width: 1.5em;
+  z-index: 0;
 }
 .rotate div {
      -moz-transform: rotate(-90.0deg);  /* FF3.5+ */
@@ -40,6 +41,7 @@ def css():
          -ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=0.083)"; /* IE8 */
          margin-left: -10em;
          margin-right: -10em;
+  z-index: 0;
 }
 table { 
 	/*	table-layout: auto; */
@@ -244,6 +246,7 @@ if __name__ == '__main__':
 					f.write('  position: sticky;\n')
 					f.write('  left: 0;\n')
 					f.write('  background-color: #ffffff;\n')
+					f.write('  z-index: 9;\n')
 					f.write('}\n')
 					f.write(css())
 					f.write('</style>\n')
