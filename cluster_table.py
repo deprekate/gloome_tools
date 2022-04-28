@@ -24,6 +24,13 @@ from scipy.spatial.distance import squareform
 sys.path.pop(0)
 from genbank.file import File
 
+def just_seq(text):
+	seq = ''
+	for line in text.split("\n"):
+		if line and not line.startswith(">"):
+			seq += line
+	return seq
+
 def css():
 	return """
 .rotate {
@@ -95,6 +102,7 @@ td.Score1{
         }
 td.white{
 	background: #FFFFFF;
+	}
 """
 
 def is_valid_file(x):
@@ -116,6 +124,7 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='', formatter_class=RawTextHelpFormatter, usage=usage)
 	parser.add_argument('GLOOME_DIR', type=is_valid_file, help='input file')
 	parser.add_argument('-l', '--labels', action="store", type=is_valid_file, help='file that has the tab delimted labels for the genomes')
+	parser.add_argument('-m', '--microbializer', action="store", type=is_valid_file, help='microbializer zip file')
 	args = parser.parse_args()
 
 	# THI IS TO ANNOTATE THE GLOOME GAIN/LOSS HTML PAGES
@@ -165,7 +174,8 @@ if __name__ == '__main__':
 		A = table[idx1+list(range(taxa,taxa+5)),:]
 		A = A[:,[0]+idx2]	
 
-		importances = None
+		importances = []
+		# THIS IS TO GET THE IMPORTANCE INFORMATION
 		if args.labels:
 			label_dict = dict()
 			y = []
@@ -182,7 +192,22 @@ if __name__ == '__main__':
 			importances = clf.feature_importances_
 			importances = importances[idx2]
 
-		#exit()
+		orthologs = dict()
+		# THIS IS TO GET THE INFORMATION FROM THE MICROBIALIZER ZIP
+		if args.microbializer:
+			with ZipFile(args.microbializer) as zf:
+				with zf.open('11_final_table/final_orthologs_table.csv', 'r') as csv_file:
+					csv_reader = csv.reader(TextIOWrapper(csv_file, 'utf-8'))
+					csv_columns = next(csv_reader)
+					for csv_row in csv_reader:
+						# process the CSV here
+						with zf.open('12_orthologs_groups_dna_sequences/'+csv_row[0]+'_dna.fas', 'r') as fas_file:
+							orthologs[csv_row[0]] = ''
+							for fas_row in fas_file:
+								if fas_row.decode().startswith('>') and orthologs[csv_row[0]]:
+									break
+								orthologs[csv_row[0]] += fas_row.decode()
+	
 		flag = True
 		with open(os.path.join(args.GLOOME_DIR, 'MSA_color_coded_by_'+kind+'_probability.html'), "w+") as f:
 			for line in text:
@@ -212,37 +237,40 @@ if __name__ == '__main__':
 					flag = False
 					# add stuff below the bars
 					f.write("<tr>\n")
-					for cell in row:
+					f.write("<td class='Seq_Name' style = 'text-align: right'>og<br><br><br></td>\n")
+					for cell in row[1:]:
 						match = re.findall("title=\"[^\"]*", cell)
+						f.write("<td class='rotate'><div>\n")
 						if match:
-							f.write("<td class='rotate'><div>\n")
+							#line.replace('title=', 'oncontextmenu="navigator.clipboard.writeText(\'' + orthologs['og_'+str(i)].replace("\n", "\\n") + '\');return false;" title=')
+							#line.replace('title="', 'title="' + just_seq(orthologs['og_'+str(i)]) + ' right click to copy sequence ')
 							f.write(match[0].split("\"")[-1].split(":")[0])
-							f.write("</div></td>\n")
-						else:
-							f.write("<td class='Seq_Name' style = 'text-align: right'>\n")
-							f.write("og")
-							f.write("</td>\n")
+						f.write("</div></td>\n")
 					f.write("</tr>\n")
 					f.write("<tr>\n")
-					for cell in row:
+					f.write("<td class='Seq_Name' style = 'text-align: right'>Expectation<br><br><br></td>\n")
+					for cell in row[1:]:
+						f.write("<td class='rotate'><div>\n")
 						match = re.findall("title=\"[^\"]*", cell)
 						if match:
-							f.write("<td class='rotate'><div>\n")
 							f.write(match[0].split("\"")[-1].split(":")[1])
-							f.write("</div></td>\n")
-						else:
-							f.write("<td class='Seq_Name' style = 'text-align: right'>\n")
-							f.write("Expectation<br><br>")
-							f.write("</td>\n")
+						f.write("</div></td>\n")
 					f.write("</tr>\n")
 					# add in randomforest stuff
 					f.write("<tr>\n")
-					f.write("<td class='Seq_Name' style = 'text-align: right'>\n")
-					f.write("Importances<br><br>")
-					f.write("</td>\n")
+					f.write("<td class='Seq_Name' style = 'text-align: right'>Importances<br><br><br></td>\n")
 					for imp in importances:
 						f.write("<td class='rotate'><div>\n")
 						f.write(str(round(imp,4)))
+						f.write("</div></td>\n")
+					f.write("</tr>\n")
+					# add in fasta sequence
+					f.write("<tr>\n")
+					f.write("<td class='Seq_Name' style = 'text-align: right'>Sequence<br><br><br></td>\n")
+					for cell in row[1:]:
+						match = re.findall("title=\"[^\"]*", cell)
+						f.write("<td class='rotate'><div>\n")
+						#f.write(just_seq(orthologs['og_'+str(int(match[0].split("\"")[-1].split(":")[0])-1) ]))
 						f.write("</div></td>\n")
 					f.write("</tr>\n")
 				elif line.startswith('</table>'):
