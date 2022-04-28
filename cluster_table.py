@@ -186,7 +186,20 @@ if __name__ == '__main__':
 		flag = True
 		with open(os.path.join(args.GLOOME_DIR, 'MSA_color_coded_by_'+kind+'_probability.html'), "w+") as f:
 			for line in text:
-				if line.startswith('<table>') and A is not None:
+				# This adds the css to keep the first column locked in place
+				if line.startswith('</head>'):
+					f.write('<style>\n')
+					f.write('.Seq_Name {\n')
+					f.write('  position: sticky;\n')
+					f.write('  left: 0;\n')
+					f.write('  background-color: #ffffff;\n')
+					f.write('  z-index: 9;\n')
+					f.write('}\n')
+					f.write(css())
+					f.write('</style>\n')
+					f.write(line)
+				# This is for displaying the table
+				elif line.startswith('<table>') and A is not None:
 					f.write(line)
 					for row in A:
 						f.write("<tr>\n")
@@ -194,7 +207,7 @@ if __name__ == '__main__':
 							f.write(cell)
 							if cell:
 								f.write("\n")
-					f.write("</tr>\n")
+						f.write("</tr>\n")
 					A = None
 					flag = False
 					# add stuff below the bars
@@ -238,18 +251,6 @@ if __name__ == '__main__':
 				elif line.startswith('<link rel='):
 					pass
 				elif flag:
-					f.write(line)
-				# This adds the css to keep the first column locked in place
-				if line.startswith('</head>'):
-					f.write('<style>\n')
-					f.write('.Seq_Name {\n')
-					f.write('  position: sticky;\n')
-					f.write('  left: 0;\n')
-					f.write('  background-color: #ffffff;\n')
-					f.write('  z-index: 9;\n')
-					f.write('}\n')
-					f.write(css())
-					f.write('</style>\n')
 					f.write(line)
 
 
